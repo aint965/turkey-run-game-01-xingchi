@@ -2,23 +2,57 @@
 // closing in whenever the turkey stumbles and falling back when it runs clean.
 // His mood is visible at a glance: calm walk far away, red-faced sprint when
 // close, and a triumphant grab when he catches the turkey.
+//
+// He runs an INTERCEPT, not a drift: he aims at where the turkey will be —
+// the landing spot of a jump, the far side of a fence — and runs the short
+// way there. The turkey's jump arc is longer than his straight run under it,
+// the slide ducks under a rail he steps over, and a landing costs the turkey
+// a beat: each is a corner he cuts. His closing tapers as he nears the
+// turkey (he cannot sprint through the last few steps), so cuts alone never
+// catch a clean run — only stumbles and hits let him finish the job.
+import { GROUND_Y, GAP_MAX, GAP_CAUGHT } from './config.js';
+
+// How fast the farmer closes the gap (px/s) while the turkey takes the long
+// way round. Small on purpose: the gap is also the turkey's safety margin,
+// and a clean run must still escape — the autoplay traces in the repo's
+// verification runs are what these numbers were tuned against.
+const AIR_CUT = 4; // turkey airborne: farmer runs straight under the arc
+const SLIDE_CUT = 3; // turkey sliding: farmer steps over the low fence
+const STUMBLE_CUT = 3; // just landed: the turkey loses a beat
+
 export function createFarmer() {
-  return { gap: 220, runPhase: 0, lunge: 0, grabbed: false };
+  return { gap: 220, runPhase: 0, lunge: 0, grabbed: false, closing: false };
 }
 
 export function farmerX(farmer, turkeyX) {
   return turkeyX - farmer.gap;
 }
 
-// The farmer closes when the turkey is slow or stumbles, and drops back when
-// the turkey sprints. Returns 'close' while he is near enough to threaten.
-export function updateFarmer(farmer, dt, playerSpeed, baseSpeed) {
+// The farmer matches the turkey's pace on open ground, so the gap only moves
+// when the turkey sprints, dawdles, or takes the long way round. Returns
+// 'close' while he is near enough to threaten.
+export function updateFarmer(farmer, dt, playerSpeed, baseSpeed, turkey) {
   farmer.runPhase += dt * (7 + playerSpeed / 55);
   if (farmer.lunge > 0) farmer.lunge = Math.max(0, farmer.lunge - dt * 2.2);
-  const drift = (playerSpeed - baseSpeed) * 0.45;
+  const air = turkey.y < GROUND_Y;
+  const sliding = turkey.sliding > 0;
+  const stumbling = turkey.squash > 0.45;
+  let cut = 0;
+  if (air) cut += AIR_CUT;
+  if (sliding) cut += SLIDE_CUT;
+  if (stumbling) cut += STUMBLE_CUT;
+  farmer.closing = cut > 0;
+  // Taper (quadratic): the closer he already is, the less each cut gains
+  // him — he cannot sprint through the last few steps, so cuts alone never
+  // catch a clean run, and the gap settles where corn and sprinting can
+  // rebuild it above one hit's worth. Only stumbles and hits let him
+  // finish the job.
+  const t = Math.max(0.1, Math.min(1, (farmer.gap - GAP_CAUGHT) / (GAP_MAX - GAP_CAUGHT)));
+  const taper = t * t;
+  const drift = (playerSpeed - baseSpeed) * 0.45 - cut * taper;
   farmer.gap += drift * dt;
-  if (farmer.gap > 280) farmer.gap = 280;
-  if (farmer.gap < 34) farmer.gap = 34;
+  if (farmer.gap > GAP_MAX) farmer.gap = GAP_MAX;
+  if (farmer.gap < GAP_CAUGHT) farmer.gap = GAP_CAUGHT;
 }
 
 export function drawFarmer(ctx, farmer, turkeyX, groundY) {
@@ -29,6 +63,8 @@ export function drawFarmer(ctx, farmer, turkeyX, groundY) {
   const legSwing = Math.sin(farmer.runPhase) * 0.8;
   ctx.save();
   ctx.translate(x + lunge, groundY);
+  // Leaning into the chase: while he is cutting a corner he sprints low and forward.
+  if (farmer.closing) ctx.rotate(0.07);
 
   // Shadow.
   ctx.fillStyle = 'rgba(0,0,0,0.25)';

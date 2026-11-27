@@ -183,7 +183,7 @@ function updatePlaying(dt) {
   if (state.flash > 0) state.flash = Math.max(0, state.flash - dt * 1.6);
 
   updateTurkey(turkey, dt, state.speed);
-  updateFarmer(farmer, dt, state.speed, stage.baseSpeed);
+  updateFarmer(farmer, dt, state.speed, stage.baseSpeed, turkey);
   state.farmerGap = farmer.gap;
 
   // Spawn ahead of the turkey.
@@ -352,6 +352,13 @@ window.__turkeyGame = {
   forceCaught: () => { if (state.screen === 'playing') endRun(false); },
   forceEscaped: () => { if (state.screen === 'playing') endRun(true); },
   setDistance: (m) => { state.distanceM = m; state.scrollPx = m * PX_PER_METRE; },
+  get hazards() {
+    // Read-only, for playtests: the hazards still ahead, in screen pixels.
+    return hazards.filter((h) => !h.passed).map((h) => ({ kind: h.kind, screenX: Math.round(h.x - state.scrollPx), w: h.w }));
+  },
+  get turkey() {
+    return { y: Math.round(turkey.y), sliding: turkey.sliding > 0, jumps: turkey.jumps };
+  },
 };
 
 let last = performance.now();

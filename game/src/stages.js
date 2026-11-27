@@ -42,6 +42,80 @@ function drawTree(ctx, x, y, s, trunk, leaf) {
   ctx.beginPath(); ctx.arc(x + 22 * s, y - 44 * s, 20 * s, 0, Math.PI * 2); ctx.fill();
 }
 
+function drawCurtain(ctx, x, y, w, h) {
+  // Gingham curtain: red panels with cream stripes and a darker hem.
+  ctx.fillStyle = '#a03a2e';
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = 'rgba(247,232,200,0.8)';
+  for (let sx = x + 9; sx < x + w - 5; sx += 20) ctx.fillRect(sx, y, 6, h);
+  ctx.fillStyle = '#7e2c22';
+  ctx.fillRect(x, y + h - 6, w, 6);
+}
+
+function drawWallClock(ctx, x, y, r) {
+  // A round kitchen clock: cream face, brown rim, twelve ticks, hands on five.
+  ctx.fillStyle = '#7a4a26';
+  ctx.beginPath(); ctx.arc(x, y, r + 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#f7e8c8';
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#3a2a1a';
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    ctx.beginPath(); ctx.arc(x + Math.sin(a) * (r - 6), y - Math.cos(a) * (r - 6), i % 3 === 0 ? 3 : 1.8, 0, Math.PI * 2); ctx.fill();
+  }
+  // Five o'clock — dinner time. Hour hand to the 5, minute hand to the 12.
+  ctx.strokeStyle = '#3a2a1a'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.sin(5 * Math.PI / 6) * (r - 14), y - Math.cos(5 * Math.PI / 6) * (r - 14)); ctx.stroke();
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - (r - 10)); ctx.stroke();
+  ctx.fillStyle = '#a03a2e';
+  ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawCopperPot(ctx, x, y) {
+  // A copper pot hanging from its hook: round body, highlight, side handles.
+  ctx.strokeStyle = '#5a3a1e'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x, y - 14); ctx.lineTo(x, y); ctx.stroke();
+  ctx.fillStyle = '#b87333';
+  ctx.beginPath(); ctx.arc(x, y + 16, 20, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#d89a4e';
+  ctx.beginPath(); ctx.arc(x - 6, y + 10, 8, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#8a5a2b';
+  ctx.fillRect(x - 28, y + 10, 8, 5); ctx.fillRect(x + 20, y + 10, 8, 5);
+}
+
+function drawSkillet(ctx, x, y) {
+  // A flat iron skillet on its hook, handle sticking out to the side.
+  ctx.strokeStyle = '#5a3a1e'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x, y - 14); ctx.lineTo(x, y); ctx.stroke();
+  ctx.fillStyle = '#3a3a40';
+  ctx.beginPath(); ctx.arc(x, y + 18, 19, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#55555e';
+  ctx.beginPath(); ctx.arc(x, y + 18, 13, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#3a3a40';
+  ctx.fillRect(x + 16, y + 14, 26, 7);
+}
+
+function drawLadle(ctx, x, y) {
+  // A ladle: long handle down to a small shining bowl.
+  ctx.strokeStyle = '#5a3a1e'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x, y - 14); ctx.lineTo(x, y + 22); ctx.stroke();
+  ctx.fillStyle = '#c9c9c9';
+  ctx.beginPath(); ctx.arc(x, y + 30, 9, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#8a8a92';
+  ctx.beginPath(); ctx.arc(x, y + 30, 5, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawJar(ctx, x, baseY, color) {
+  // A squat preserve jar with a wooden lid, sitting on the shelf (baseY is the shelf top).
+  ctx.fillStyle = '#8a5a2b';
+  ctx.fillRect(x - 9, baseY - 40, 18, 6);
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.ellipse(x, baseY - 20, 12, 20, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath(); ctx.ellipse(x - 5, baseY - 26, 3, 7, 0, 0, Math.PI * 2); ctx.fill();
+}
+
 export function drawStageBackground(ctx, stageIndex, scrollPx, time) {
   const stage = STAGES[stageIndex];
   const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
@@ -104,6 +178,13 @@ export function drawStageBackground(ctx, stageIndex, scrollPx, time) {
         if ((x + y) % 2 === 0) ctx.fillRect(x * tile - (mid % tile), y * tile, tile, tile);
       }
     }
+    // A few terracotta accent tiles break the checkerboard up.
+    ctx.fillStyle = 'rgba(120,40,20,0.14)';
+    for (let y = 0; y < 5; y++) {
+      for (let x = 0; x < 19; x++) {
+        if ((x * 5 + y * 3) % 7 === 0) ctx.fillRect(x * tile - (mid % tile) + 8, y * tile + 8, tile - 16, tile - 16);
+      }
+    }
     ctx.fillStyle = '#f7e8c8';
     ctx.fillRect(880, 90, 220, 170);
     ctx.fillStyle = '#2b4d6e';
@@ -112,12 +193,59 @@ export function drawStageBackground(ctx, stageIndex, scrollPx, time) {
     ctx.beginPath(); ctx.arc(1030, 150, 26, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#7a4a26';
     ctx.fillRect(986, 240, 8, 20); ctx.fillRect(1076, 240, 8, 20);
+    // Gingham curtains frame the window, and the wall clock reads five o'clock.
+    drawCurtain(ctx, 866, 84, 46, 182);
+    drawCurtain(ctx, 1068, 84, 46, 182);
+    drawWallClock(ctx, 430, 104, 32);
     for (let i = 0; i < 4; i++) {
       const px = ((i * 330 - mid) % 1320 + 1320) % 1320 - 20;
       ctx.fillStyle = '#3a3a40';
       ctx.beginPath(); ctx.arc(px, 300, 26, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#55555e';
       ctx.beginPath(); ctx.arc(px, 300, 18, 0, Math.PI * 2); ctx.fill();
+    }
+    // A hanging rail: copper pots, a skillet and a ladle, drifting past.
+    for (let i = 0; i < 5; i++) {
+      const rx = ((i * 300 - mid) % 1500 + 1500) % 1500 - 60;
+      ctx.fillStyle = '#4a2c14';
+      ctx.fillRect(rx, 336, 300, 7);
+      const hx = rx + 150;
+      if (i % 3 === 0) drawCopperPot(ctx, hx, 343);
+      else if (i % 3 === 1) drawSkillet(ctx, hx, 343);
+      else drawLadle(ctx, hx, 343);
+    }
+    // A wooden shelf with preserve jars and a little herb plant.
+    for (let i = 0; i < 3; i++) {
+      const sx = ((i * 460 - mid) % 1380 + 1380) % 1380 - 80;
+      ctx.fillStyle = '#7a4a26';
+      ctx.fillRect(sx, 468, 170, 10);
+      drawJar(ctx, sx + 26, 468, '#d88a2e');
+      drawJar(ctx, sx + 76, 468, '#6a8a3a');
+      drawJar(ctx, sx + 126, 468, '#e8dcc0');
+      if (i % 2 === 0) {
+        ctx.fillStyle = '#b5541f';
+        ctx.beginPath(); ctx.ellipse(sx + 156, 458, 9, 10, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#4a7a2e';
+        ctx.beginPath(); ctx.ellipse(sx + 150, 444, 5, 10, -0.4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(sx + 162, 444, 5, 10, 0.4, 0, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    // Dried garlic braids and chili strings on the far wall.
+    for (let i = 0; i < 3; i++) {
+      const gx = ((i * 520 - far) % 1560 + 1560) % 1560 - 40;
+      ctx.strokeStyle = '#8a7a5a'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(gx, 350); ctx.lineTo(gx, 452); ctx.stroke();
+      ctx.fillStyle = '#f2ead8';
+      for (let j = 0; j < 4; j++) {
+        ctx.beginPath(); ctx.ellipse(gx, 366 + j * 24, 9, 12, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      const cx = gx + 34;
+      ctx.strokeStyle = '#8a7a5a';
+      ctx.beginPath(); ctx.moveTo(cx, 350); ctx.lineTo(cx, 440); ctx.stroke();
+      ctx.fillStyle = '#b03a2e';
+      for (let j = 0; j < 4; j++) {
+        ctx.beginPath(); ctx.ellipse(cx, 366 + j * 22, 5, 10, 0.25, 0, Math.PI * 2); ctx.fill();
+      }
     }
     // A row of recipe notes pinned to the wall.
     ctx.fillStyle = '#fff8dc';

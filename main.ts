@@ -11,7 +11,7 @@
 // The output directory is cleared first, so running the program twice from the
 // same repository writes byte-identical output both times.
 
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
@@ -43,13 +43,24 @@ if (existsSync(join(repoRoot, 'screenshots'))) {
 // screenshots or one over 256 KiB; more than 993 files in game/ or 48 MiB of
 // game files in all, or a path under game/ over 1000 bytes: game/ counts
 // beside /output's own 1000-entry cap, its screenshots/ and dossier.json).
-writeFileSync(
-  join(outDir, 'dossier.json'),
-  buildDossier(outDir, {
-    text_max_bytes: 163840,
-    screenshots: { max: 4, max_bytes: 262144 },
-    game_max_files: 993,
-    game_max_bytes: 50331648,
-    game_path_max_bytes: 1000,
-  }),
-);
+const dossierCaps = {
+  text_max_bytes: 163840,
+  screenshots: { max: 4, max_bytes: 262144 },
+  game_max_files: 993,
+  game_max_bytes: 50331648,
+  game_path_max_bytes: 1000,
+};
+const dossier = buildDossier(outDir, dossierCaps);
+writeFileSync(join(outDir, 'dossier.json'), dossier);
+
+// Self-check: buildDossier must be a pure function of the output
+// directory's contents (game/ + screenshots/), so rebuilding it from the
+// written directory has to reproduce the exact bytes just written. If it
+// does not, the hand-in is not reproducible across the grader's two runs —
+// fail loudly here instead of handing in a dossier the second run would
+// not reproduce.
+const rebuilt = buildDossier(outDir, dossierCaps);
+const written = readFileSync(join(outDir, 'dossier.json'));
+if (rebuilt.length !== written.length || !rebuilt.every((b, i) => b === written[i])) {
+  throw new Error('dossier self-check failed: rebuilt dossier differs from the written one');
+}
