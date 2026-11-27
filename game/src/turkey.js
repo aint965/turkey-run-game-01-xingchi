@@ -7,8 +7,8 @@ import { GRAVITY, GROUND_Y, JUMP_VELOCITY, DOUBLE_JUMP_VELOCITY, SLIDE_TIME, TUR
 export function createTurkey() {
   return {
     x: TURKEY_X, y: GROUND_Y, vy: 0,
-    jumps: 0, sliding: 0, runPhase: 0, squash: 0,
-    invulnerable: 0, blink: 0,
+    jumps: 0, sliding: 0, runPhase: 0, squash: 0, stretch: 0,
+    invulnerable: 0, blink: 0, justLanded: false,
   };
 }
 
@@ -18,42 +18,65 @@ export function turkeyHitbox(t) {
 }
 
 export function turkeyJump(t, sounds) {
-  if (t.sliding > 0) return;
+  // Returns true when a jump actually fired (single or double), false when
+  // the press could not act (sliding, or both jumps already spent). The
+  // caller (action buffer) keeps a false press for a short window instead of
+  // dropping it.
+  if (t.sliding > 0) return false;
   if (t.y >= GROUND_Y && t.jumps === 0) {
-    t.vy = JUMP_VELOCITY; t.jumps = 1; t.squash = 0; sounds.jump();
+    t.vy = JUMP_VELOCITY; t.jumps = 1; t.squash = 0; t.stretch = 1; sounds.jump();
+    return true;
   } else if (t.jumps === 1) {
-    t.vy = DOUBLE_JUMP_VELOCITY; t.jumps = 2; t.squash = 0; sounds.jump();
+    t.vy = DOUBLE_JUMP_VELOCITY; t.jumps = 2; t.squash = 0; t.stretch = 1; sounds.jump();
+    return true;
   }
+  return false;
 }
 
 export function turkeySlide(t, sounds) {
-  if (t.y < GROUND_Y) return; // can't hide mid-air
+  if (t.y < GROUND_Y) return false; // can't hide mid-air
   if (t.sliding <= 0) sounds.slide();
   t.sliding = SLIDE_TIME;
+  return true;
 }
 
 export function updateTurkey(t, dt, speed) {
   t.runPhase += dt * (6 + speed / 60);
   if (t.squash > 0) t.squash = Math.max(0, t.squash - dt * 4);
+  if (t.stretch > 0) t.stretch = Math.max(0, t.stretch - dt * 5);
   if (t.sliding > 0) t.sliding = Math.max(0, t.sliding - dt);
   if (t.invulnerable > 0) { t.invulnerable = Math.max(0, t.invulnerable - dt); t.blink += dt * 18; }
   if (t.y < GROUND_Y || t.vy !== 0) {
     t.vy += GRAVITY * dt;
     t.y += t.vy * dt;
-    if (t.y >= GROUND_Y) { t.y = GROUND_Y; t.vy = 0; t.jumps = 0; t.squash = 1; }
+    if (t.y >= GROUND_Y) { t.y = GROUND_Y; t.vy = 0; t.jumps = 0; t.squash = 1; t.justLanded = true; }
   }
+}
+
+// easeOutBack: 0 -> 0, 1 -> 1, with an overshoot past 1 in between — the
+// squash settles exactly at rest (scale 1) instead of easing to a stop.
+function easeOutBack(u) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2);
 }
 
 export function drawTurkey(ctx, t) {
   if (t.invulnerable > 0 && Math.floor(t.blink) % 2 === 0) return; // hurt blink
   const air = t.y < GROUND_Y;
   const slide = t.sliding > 0;
-  const squashY = 1 - t.squash * 0.18;
-  const squashX = 1 + t.squash * 0.14;
+  // Squash & stretch (game-feel): landing squashes to 0.7 tall / 1.3 wide and
+  // springs back with an overshoot, ending exactly at 1; a jump stretches to
+  // 1.15 tall / 0.88 wide and relaxes. Both timers end at exactly scale 1.
+  const e = easeOutBack(1 - t.squash);
+  const squashY = 1 - 0.30 * (1 - e);
+  const squashX = 1 + 0.30 * (1 - e);
+  const stretchY = 1 + 0.15 * t.stretch;
+  const stretchX = 1 - 0.12 * t.stretch;
   const legSwing = air ? 0.5 : Math.sin(t.runPhase) * 0.9;
   ctx.save();
   ctx.translate(t.x, t.y);
-  ctx.scale(squashX, squashY);
+  ctx.scale(squashX * stretchX, squashY * stretchY);
 
   if (slide) {
     // Hiding low: body flattened, tail tucked, eyes peeking over the back.

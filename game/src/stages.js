@@ -4,6 +4,10 @@
 // sky, sun, distant shapes, mid-ground props and ground, all in code.
 import { GROUND_Y, VIEW_W, VIEW_H, STAGES } from './config.js';
 
+// The sky gradient depends only on the stage colours: one cached gradient
+// per stage, rebuilt only when the stage changes.
+let skyGradCache = { stage: -1, grad: null };
+
 function drawSun(ctx, x, y, r, color) {
   ctx.fillStyle = color;
   ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
@@ -118,10 +122,15 @@ function drawJar(ctx, x, baseY, color) {
 
 export function drawStageBackground(ctx, stageIndex, scrollPx, time) {
   const stage = STAGES[stageIndex];
-  const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-  grad.addColorStop(0, stage.skyTop);
-  grad.addColorStop(1, stage.skyBottom);
-  ctx.fillStyle = grad;
+  // The sky gradient depends only on the stage colours, so it is built once
+  // per stage instead of allocating a new gradient every frame.
+  if (skyGradCache.stage !== stageIndex) {
+    const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+    grad.addColorStop(0, stage.skyTop);
+    grad.addColorStop(1, stage.skyBottom);
+    skyGradCache = { stage: stageIndex, grad };
+  }
+  ctx.fillStyle = skyGradCache.grad;
   ctx.fillRect(0, 0, VIEW_W, GROUND_Y + 2);
 
   const far = scrollPx * 0.15;
@@ -194,9 +203,11 @@ export function drawStageBackground(ctx, stageIndex, scrollPx, time) {
     ctx.fillStyle = '#7a4a26';
     ctx.fillRect(986, 240, 8, 20); ctx.fillRect(1076, 240, 8, 20);
     // Gingham curtains frame the window, and the wall clock reads five o'clock.
+    // The clock sits below the HUD progress bar (y 86-96), so its face is
+    // never clipped: centre y 140 puts its top edge at 103.
     drawCurtain(ctx, 866, 84, 46, 182);
     drawCurtain(ctx, 1068, 84, 46, 182);
-    drawWallClock(ctx, 430, 104, 32);
+    drawWallClock(ctx, 430, 140, 32);
     for (let i = 0; i < 4; i++) {
       const px = ((i * 330 - mid) % 1320 + 1320) % 1320 - 20;
       ctx.fillStyle = '#3a3a40';

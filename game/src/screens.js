@@ -191,10 +191,10 @@ export function drawHud(ctx, state) {
     ctx.fillText(stage.tagline, 640, 282);
     ctx.globalAlpha = 1;
   }
-  // "SPOTTED!" flash on a hit.
+  // "SPOTTED!" flash on a hit (red) or on an escape (green-gold).
   if (state.flash > 0) {
     ctx.globalAlpha = Math.min(0.55, state.flash);
-    ctx.fillStyle = '#ff3b2e';
+    ctx.fillStyle = state.flashColor || '#ff3b2e';
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#fff';
@@ -255,7 +255,18 @@ export function drawEnd(ctx, state, mouse) {
   }
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 28px sans-serif';
-  ctx.fillText(`SCORE  ${Math.floor(state.score)}`, 640, 380);
+  // Score pop (game-feel): the final score scales up as the end screen
+  // lands, then settles at exactly 1.
+  if (state.scorePop > 0) {
+    const s = 1 + 0.35 * state.scorePop;
+    ctx.save();
+    ctx.translate(640, 380);
+    ctx.scale(s, s);
+    ctx.fillText(`SCORE  ${Math.floor(state.score)}`, 0, 0);
+    ctx.restore();
+  } else {
+    ctx.fillText(`SCORE  ${Math.floor(state.score)}`, 640, 380);
+  }
   ctx.font = '24px sans-serif';
   ctx.fillText(`Distance  ${Math.floor(state.distanceM)} m    •    Corn  x ${state.corn}    •    Stage  ${STAGES[state.stageIndex].name}`, 640, 420);
   const isBest = state.score >= state.best.score && state.score > 0;

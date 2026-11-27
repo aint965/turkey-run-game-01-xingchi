@@ -11,7 +11,7 @@
 // The output directory is cleared first, so running the program twice from the
 // same repository writes byte-identical output both times.
 
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
@@ -36,6 +36,19 @@ cpSync(join(repoRoot, 'game'), join(outDir, 'game'), { recursive: true });
 mkdirSync(join(outDir, 'screenshots'), { recursive: true });
 if (existsSync(join(repoRoot, 'screenshots'))) {
   cpSync(join(repoRoot, 'screenshots'), join(outDir, 'screenshots'), { recursive: true });
+}
+
+// Pre-flight: the four dossier screenshots are the judge's first look, so
+// check them before the dossier is built — a missing or oversized shot fails
+// here with a clear message instead of a cryptic dossier error.
+const shotDir = join(repoRoot, 'screenshots');
+if (existsSync(shotDir)) {
+  for (const name of ['1-play.png', '2-title.png', '3-kitchen.png', '4-end.png']) {
+    const p = join(shotDir, name);
+    if (!existsSync(p)) throw new Error(`missing dossier screenshot: screenshots/${name} (run the driver shots mode first)`);
+    const bytes = statSync(p).size;
+    if (bytes > 262144) throw new Error(`dossier screenshot too big: screenshots/${name} is ${bytes} bytes (cap 262144)`);
+  }
 }
 
 // The scorer's own caps (reference/gate.json): only text_max_bytes shapes the

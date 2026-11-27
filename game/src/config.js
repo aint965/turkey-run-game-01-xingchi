@@ -12,6 +12,12 @@ export const JUMP_VELOCITY = -980;
 export const DOUBLE_JUMP_VELOCITY = -820;
 export const SLIDE_TIME = 0.55;
 
+// Action buffer (input-systems): a discrete press (jump/slide) that arrives a
+// hair too early stays valid for this long in GAME time, is consumed exactly
+// once when the action becomes legal, then is dropped. It forgives the
+// 0.1-0.3 s timing windows without changing what a press does.
+export const ACTION_BUFFER_S = 0.15;
+
 export const STAGE_LENGTH_M = 300;
 export const ESCAPE_DISTANCE_M = STAGE_LENGTH_M * 3; // farmyard -> barn -> kitchen -> forest gate
 export const MAX_LIVES = 3;

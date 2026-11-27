@@ -57,9 +57,13 @@ export function drawHazard(ctx, h) {
     ctx.fillRect(h.x - 46, h.y, 92, 12);
     ctx.fillStyle = '#22222a';
     ctx.fillRect(h.x - 34, h.y + 30, 68, 56);
+    // Fire glow: solid colour + globalAlpha instead of a fresh rgba string
+    // every frame (no string building in the hot loop).
     const flicker = 0.75 + Math.sin(h.phase * 7 + Date.now() / 90) * 0.25;
-    ctx.fillStyle = `rgba(255,${Math.floor(120 * flicker)},20,0.95)`;
+    ctx.globalAlpha = flicker;
+    ctx.fillStyle = '#ff7814';
     ctx.fillRect(h.x - 28, h.y + 36, 56, 44);
+    ctx.globalAlpha = 1;
     ctx.fillStyle = '#ffd23e';
     ctx.beginPath();
     ctx.moveTo(h.x - 18, h.y + 76); ctx.lineTo(h.x - 6, h.y + 44); ctx.lineTo(h.x + 4, h.y + 76);
